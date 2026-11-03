@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>분양 상담 문의</title>
+<style>
+  :root{
+    --ink:#152736;
+    --ink-soft:#4a6072;
+    --paper:#f7f5f0;
+    --card:#ffffff;
+    --navy:#123a5c;
+    --navy-deep:#0c2b46;
+    --brass:#b98a2f;
+    --brass-soft:#f3e7cd;
+    --line:#e3ddd2;
+    --ok:#1e6e4e;
+    --err:#b03a2e;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{height:100%;-webkit-text-size-adjust:100%;}
+  body{
+    font-family:'Pretendard','Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic',sans-serif;
+    background:var(--paper);
+    color:var(--ink);
+    line-height:1.5;
+    overflow:hidden;
+    background-image:
+      linear-gradient(rgba(18,58,92,.045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(18,58,92,.045) 1px, transparent 1px);
+    background-size:28px 28px;
+  }
+  #app{
+    max-width:480px;height:100dvh;
+    margin:0 auto;
+    display:flex;flex-direction:column;
+    position:relative;
+    background:var(--paper);
+    box-shadow:0 0 40px rgba(21,39,54,.12);
+  }
+  @media (max-width:480px){ #app{box-shadow:none;} }
+
+  #topbar{
+    padding:14px 20px 0;
+    background:var(--paper);
+    z-index:5;
+  }
+  .topline{
+    display:flex;align-items:center;justify-content:space-between;
+    margin-bottom:10px;
+  }
+  .brand{font-size:12.5px;font-weight:700;letter-spacing:.08em;color:var(--navy);}
+  .stepnum{font-size:12px;color:var(--ink-soft);font-variant-numeric:tabular-nums;}
+  .stepnum b{color:var(--ink);font-size:14px;}
+  .bar{height:4px;background:#e5e0d5;border-radius:2px;overflow:hidden;}
+  .bar span{
+    display:block;height:100%;width:0;
+    background:linear-gradient(90deg,var(--navy),var(--brass));
+    border-radius:2px;
+    transition:width .35s cubic-bezier(.4,0,.2,1);
+  }
+  #loadmsg{
+    text-align:center;padding:40px 24px;
+    font-size:14px;color:var(--ink-soft);
+  }
+  #loadmsg b{display:block;font-size:18px;color:var(--ink);margin-bottom:6px;}
+  .spin{
+    width:26px;height:26px;margin:0 auto 14px;
+    border:3px solid var(--line);border-top-color:var(--brass);
+    border-radius:50%;animation:sp 1s linear infinite;
+  }
+  @keyframes sp{to{transform:rotate(360deg)}}
+
+  #stage{flex:1;position:relative;overflow:hidden;}
+  .step{
+    position:absolute;inset:0;
+    display:flex;flex-direction:column;
+    padding:26px 24px 20px;
+    visibility:hidden;
+    transform:translateX(40px);opacity:0;
+    transition:transform .3s cubic-bezier(.4,0,.2,1), opacity .3s;
+    overflow-y:auto;
+  }
+  .step.active{visibility:visible;transform:none;opacity:1;}
+  .step.leaving{visibility:visible;transform:translateX(-40px);opacity:0;}
+
+  .eyebrow{
+    font-size:12px;font-weight:700;letter-spacing:.14em;
+    color:var(--brass);margin-bottom:8px;
+  }
+  .q{font-size:24px;font-weight:800;letter-spacing:-.02em;line-height:1.35;margin-bottom:6px;}
+  .q-sub{font-size:13.5px;color:var(--ink-soft);margin-bottom:22px;}
+  .spacer{flex:1;}
+
+  .opts{display:flex;flex-direction:column;gap:10px;}
+  .opt{
+    display:flex;align-items:center;gap:12px;
+    background:var(--card);
+    border:1.5px solid var(--line);
+    border-radius:14px;
+    padding:17px 18px;
+    cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent;
+    transition:border-color .12s, background .12s, transform .08s;
+  }
+  .opt:active{transform:scale(.98);}
+  .opt .mark{
+    width:22px;height:22px;flex:none;
+    border:2px solid #cfc7b8;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    font-size:12px;color:transparent;transition:all .12s;
+  }
+  .opt .t{flex:1;}
+  .opt .t b{display:block;font-size:16.5px;font-weight:700;}
+  .opt .t span{display:block;font-size:12.5px;color:var(--ink-soft);margin-top:2px;}
+  .opt.on{
+    border-color:var(--navy);background:#eef3f8;
+  }
+  .opt.on .mark{
+    background:var(--navy);border-color:var(--navy);color:#fff;
+  }
+  .opt.on .mark::before{content:"✓";font-weight:800;}
+
+  .dategrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+  .dchip{
+    background:var(--card);
+    border:1.5px solid var(--line);
+    border-radius:12px;
+    padding:11px 4px;
+    text-align:center;cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent;
+    transition:all .12s;
+  }
+  .dchip:active{transform:scale(.96);}
+  .dchip .d1{font-size:15px;font-weight:800;}
+  .dchip .d2{font-size:11.5px;color:var(--ink-soft);margin-top:2px;}
+  .dchip.on{background:var(--navy);border-color:var(--navy);}
+  .dchip.on .d1,.dchip.on .d2{color:#fff;}
+  .dchip.on .d2{opacity:.8;}
+
+  .chips{display:flex;flex-wrap:wrap;gap:8px;}
+  .chip{
+    border:1.5px solid var(--line);background:var(--card);
+    border-radius:999px;padding:10px 15px;
+    font-size:14px;font-weight:600;color:var(--ink-soft);
+    cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent;
+    transition:all .12s;
+  }
+  .chip:active{transform:scale(.96);}
+  .chip.on{background:var(--navy);border-color:var(--navy);color:#fff;}
+  .chip .d{display:block;font-size:11px;font-weight:500;opacity:.75;}
+
+  .inputs{display:flex;flex-direction:column;gap:14px;}
+  input[type=text],input[type=tel],textarea{
+    width:100%;
+    border:1.5px solid var(--line);
+    border-radius:12px;
+    padding:15px 16px;
+    font-size:17px;
+    font-family:inherit;background:var(--card);
+    color:var(--ink);transition:border-color .15s;
+  }
+  input:focus,textarea:focus{outline:none;border-color:var(--navy);}
+  textarea{resize:none;min-height:120px;}
+  .invalid{border-color:var(--err)!important;background:#fdf3f2;}
+  .flabel{font-size:13px;font-weight:700;color:var(--ink-soft);}
+
+  #footer{
+    padding:12px 20px calc(16px + env(safe-area-inset-bottom));
+    background:var(--paper);
+    border-top:1px solid var(--line);
+    display:flex;gap:10px;z-index:5;
+  }
+  .btn{
+    border:none;border-radius:12px;
+    padding:16px 20px;
+    font-size:16px;font-weight:800;font-family:inherit;
+    cursor:pointer;-webkit-tap-highlight-color:transparent;
+    transition:transform .08s, opacity .2s;
+  }
+  .btn:active{transform:scale(.97);}
+  .back{
+    background:none;color:var(--ink-soft);
+    border:1.5px solid var(--line);flex:none;padding:16px 22px;
+    visibility:hidden;
+  }
+  .back.show{visibility:visible;}
+  .next{
+    flex:1;background:var(--brass);color:#fff;
+    box-shadow:0 3px 0 #8f681f;
+  }
+  .next:active{transform:translateY(2px);box-shadow:0 1px 0 #8f681f;}
+  .next.dim{opacity:.45;}
+
+  #done{
+    position:absolute;inset:0;z-index:10;
+    display:none;flex-direction:column;
+    padding:26px 24px calc(16px + env(safe-area-inset-bottom));
+    background:var(--paper);
+    overflow-y:auto;
+  }
+  #done.show{display:flex;}
+  .done-ic{
+    width:64px;height:64px;border-radius:50%;
+    background:var(--ok);color:#fff;flex:none;
+    display:flex;align-items:center;justify-content:center;
+    font-size:30px;margin:8px 0 16px;
+  }
+  .done h2{font-size:24px;font-weight:800;letter-spacing:-.02em;}
+  .done .sub{font-size:14px;color:var(--ink-soft);margin:6px 0 18px;}
+  .preview{
+    background:#f2f6f9;border:1px solid #d7e2ea;border-radius:12px;
+    padding:16px;font-size:14px;white-space:pre-wrap;word-break:keep-all;
+    margin-bottom:16px;
+  }
+  .sendrow{display:flex;flex-direction:column;gap:10px;}
+  .send{
+    width:100%;border:none;border-radius:12px;padding:17px;
+    font-size:16px;font-weight:800;font-family:inherit;cursor:pointer;
+  }
+  .send-sms{background:var(--navy);color:#fff;}
+  .send-copy{background:var(--card);color:var(--ink);border:1.5px solid var(--line);}
+  .copied{background:var(--ok)!important;color:#fff!important;}
+  .again{
+    display:block;margin:16px auto 0;background:none;border:none;
+    color:var(--ink-soft);font-size:13px;text-decoration:underline;cursor:pointer;font-family:inherit;
+  }
+  #banner{
+    display:none;margin:0 20px;padding:8px 12px;margin-top:10px;
+    background:#fdf3f2;border:1px solid #ecc9c5;border-radius:8px;
+    font-size:12.5px;color:var(--err);
+  }
+  #banner.show{display:block;}
+
+  @media (prefers-reduced-motion: reduce){
+    *{transition:none!important;animation:none!important;}
+  }
+</style>
+</head>
+<body>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<div id="app">
+
+  <div id="topbar" style="display:none;">
+    <div class="topline">
+      <span class="brand" id="brand">◆ 분양 상담 문의</span>
+      <span class="stepnum"><b id="cur">1</b> / <span id="total">6</span></span>
+    </div>
+    <div class="bar"><span id="bar"></span></div>
+  </div>
+  <div id="banner"></div>
+
+  <div id="loadmsg">
+    <div class="spin"></div>
+    <b>문의 양식을 불러오는 중…</b>
+    잠시만 기다려 주세요.
+  </div>
+
+  <div id="stage" style="display:none;">
+
+    <section class="step" data-req="1">
+      <div class="eyebrow">PURPOSE</div>
+      <div class="q">어떤 목적으로<br>문의하셨나요?</div>
+      <div class="q-sub">하나만 선택해 주세요.</div>
+      <div class="opts" id="purpose">
+        <div class="opt" data-v="실거주"><span class="mark"></span><span class="t"><b>실거주</b><span>직접 입주 목적</span></span></div>
+        <div class="opt" data-v="투자"><span class="mark"></span><span class="t"><b>투자</b><span>수익 · 자산 목적</span></span></div>
+      </div>
+    </section>
+
+    <section class="step" data-req="1">
+      <div class="eyebrow">TYPE</div>
+      <div class="q">희망하시는<br>타입을 알려주세요</div>
+      <div class="q-sub" id="type-sub">모델하우스에서 보실 평형이에요.</div>
+      <div class="opts" id="type"></div>
+    </section>
+
+    <section class="step">
+      <div class="eyebrow">VISIT DATE</div>
+      <div class="q">언제 방문하실 예정인가요?</div>
+      <div class="q-sub">날짜를 먼저 선택해 주세요.</div>
+      <div class="dategrid" id="visitDate"></div>
+      <div class="q-sub" style="margin-top:18px;margin-bottom:10px;">시간대도 골라 주세요.</div>
+      <div class="chips" id="visitTime">
+        <div class="chip" data-v="오전">오전 <span class="d">10~12시</span></div>
+        <div class="chip" data-v="오후">오후 <span class="d">13~17시</span></div>
+        <div class="chip" data-v="저녁">저녁 <span class="d">17시 이후</span></div>
+        <div class="chip" data-v="시간무관">시간 무관</div>
+      </div>
+      <div class="spacer"></div>
+    </section>
+
+    <section class="step" data-auto="1">
+      <div class="eyebrow">PARTY</div>
+      <div class="q">몇 분이서<br>방문하시나요?</div>
+      <div class="q-sub">정확히 몇 명인지 몰라도 괜찮아요.</div>
+      <div class="opts" id="party">
+        <div class="opt" data-v="1명"><span class="mark"></span><span class="t"><b>1명</b><span>혼자 방문</span></span></div>
+        <div class="opt" data-v="2명"><span class="mark"></span><span class="t"><b>2명</b><span>커플 · 부부 · 지인과</span></span></div>
+        <div class="opt" data-v="3명 이상"><span class="mark"></span><span class="t"><b>3명 이상</b><span>가족 · 단체</span></span></div>
+      </div>
+    </section>
+
+    <section class="step">
+      <div class="eyebrow">CONTACT</div>
+      <div class="q">이름과 연락처를<br>알려주세요</div>
+      <div class="q-sub">선택하신 일시로 담당자가 다시 연락드릴게요.</div>
+      <div class="inputs">
+        <div>
+          <span class="flabel">이름</span>
+          <input type="text" id="name" placeholder="홍길동" autocomplete="name" style="margin-top:6px;">
+        </div>
+        <div>
+          <span class="flabel">연락처</span>
+          <input type="tel" id="phone" placeholder="010-1234-5678" inputmode="numeric" autocomplete="tel" style="margin-top:6px;">
+        </div>
+      </div>
+      <div class="spacer"></div>
+    </section>
+
+    <section class="step">
+      <div class="eyebrow">MEMO</div>
+      <div class="q">궁금하신 점이 있나요?</div>
+      <div class="q-sub">없으면 그냥 넘어가도 돼요. (선택)</div>
+      <textarea id="memo" placeholder="예) 분양가 안내, 주차 대수, 잔금 일정 등"></textarea>
+      <div class="spacer"></div>
+    </section>
+
+  </div>
+
+  <div id="footer" style="display:none;">
+    <button class="btn back" id="btnBack">← 이전</button>
+    <button class="btn next" id="btnNext">다음</button>
+  </div>
+
+  <div id="done">
+    <div class="done-ic">✓</div>
+    <h2>작성 완료!</h2>
+    <div class="sub">내용을 확인하시고 담당자에게 보내 주세요.</div>
+    <div class="preview" id="preview"></div>
+    <div id="cloudStatus" style="font-size:13.5px;font-weight:700;margin:-6px 0 10px;"></div>
+    <div class="sendrow">
+      <button class="send send-sms" id="btnSms">📱 문자로 담당자에게 보내기</button>
+      <button class="send send-copy" id="btnCopy">📋 내용 복사하기</button>
+    </div>
+    <button class="again" id="btnAgain">처음부터 다시 작성하기</button>
+  </div>
+
+</div>
+
+<script>
+/* ── 예약장부(관리 홈페이지)와 연결된 설정: 여기서 관리 탭의 수정이 자동 반영됩니다 ── */
+var SB_URL='https://lmkpwupeinkqbfmhqcrc.supabase.co';
+var SB_KEY='sb_publishable_BrgcLKyjLU7et47zEocZdQ_mNvmFNbo';
+var DEF={
+  site:"○○○ 아파트",
+  agent_phone:"010-0000-0000",
+  types:["59㎡(A)","59㎡(B)","84㎡(A)","84㎡(B)","상관없음"],
+  days:7,
+  intro:""
+};
+var CFG={code:new URLSearchParams(location.search).get('s')||'',owner:null};
+for(var k in DEF)CFG[k]=DEF[k];
+
+(function(){
+  var fin=false;
+  function start(){ if(fin)return; fin=true;
+    document.getElementById('loadmsg').style.display='none';
+    ['topbar','stage','footer'].forEach(function(i){document.getElementById(i).style.display='';});
+    build();
+  }
+  if(CFG.code && typeof supabase!=='undefined'){
+    supabase.createClient(SB_URL,SB_KEY)
+      .from('forms').select('*').eq('code',CFG.code).eq('active',true).maybeSingle()
+      .then(function(r){
+        if(r.data){
+          CFG.owner=r.data.user_id||null;
+          CFG.site=r.data.site||DEF.site;
+          CFG.agent_phone=r.data.agent_phone||DEF.agent_phone;
+          CFG.types=(Array.isArray(r.data.types)&&r.data.types.length)?r.data.types:DEF.types;
+          CFG.days=r.data.days||DEF.days;
+          CFG.intro=r.data.intro||'';
+        }else if(r.error===null&&!r.data){
+          var b=document.getElementById('banner');
+          b.textContent='이 링크의 양식을 찾을 수 없어 기본 양식으로 표시합니다.';
+          b.classList.add('show');
+        }
+        start();
+      });
+    setTimeout(start,4000);  /* 네트워크 지연 시 기본 양식이라도 표시 */
+  }else{
+    if(CFG.code){
+      var b=document.getElementById('banner');
+      b.textContent='연결 지연 — 기본 양식으로 표시합니다.';
+      b.classList.add('show');
+    }
+    start();
+  }
+})();
+
+function build(){
+  document.getElementById('brand').textContent='◆ '+CFG.site;
+  document.title=CFG.site+' 상담 문의';
+  if(CFG.intro)document.getElementById('type-sub').textContent=CFG.intro;
+
+  var typeBox=document.getElementById('type');
+  CFG.types.forEach(function(t){
+    var d=document.createElement('div');
+    d.className='opt';
+    d.innerHTML='<span class="mark"></span><span class="t"><b>'+t+'</b></span>';
+    d.dataset.v=t;
+    typeBox.appendChild(d);
+  });
+
+  var dayNames=['일','월','화','수','목','금','토'];
+  var dateBox=document.getElementById('visitDate');
+  for(var off=0;off<CFG.days;off++){
+    (function(off){
+      var d=new Date();d.setDate(d.getDate()+off);
+      var el=document.createElement('div');
+      el.className='dchip';
+      el.dataset.v=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+      el.innerHTML=
+        '<div class="d1">'+(off===0?'오늘':off===1?'내일':(d.getMonth()+1)+'/'+d.getDate())+'</div>'+
+        '<div class="d2">'+(off<=1?(d.getMonth()+1)+'/'+d.getDate()+' · ':'')+dayNames[d.getDay()]+'요일</div>';
+      dateBox.appendChild(el);
+    })(off);
+  }
+
+  var steps=Array.prototype.slice.call(document.querySelectorAll('.step'));
+  var cur=0, summary='', leavingTimer=null;
+  var curEl=document.getElementById('cur'), totalEl=document.getElementById('total'),
+      barEl=document.getElementById('bar'),
+      btnBack=document.getElementById('btnBack'), btnNext=document.getElementById('btnNext'),
+      done=document.getElementById('done'), phone=document.getElementById('phone');
+  totalEl.textContent=steps.length;
+
+  function pick(id){var c=document.querySelector('#'+id+' .on');return c?(c.dataset.v||''):'';}
+  function validate(i){
+    if(i===0&&!pick('purpose'))return false;
+    if(i===1&&!pick('type'))return false;
+    if(i===2&&!pick('visitDate'))return false;
+    if(i===4){
+      var n=document.getElementById('name').value.trim(), t=phone.value.trim();
+      document.getElementById('name').classList.toggle('invalid',!n);
+      phone.classList.toggle('invalid',!t);
+      if(!n||!t)return false;
+    }
+    return true;
+  }
+  function render(){
+    curEl.textContent=cur+1;
+    barEl.style.width=(cur/(steps.length-1))*100+'%';
+    btnBack.classList.toggle('show',cur>0);
+    var last=cur===steps.length-1;
+    btnNext.textContent=last?'작성 완료 ✓':'다음';
+    var picked=cur===0?!!pick('purpose'):cur===1?!!pick('type'):cur===2?!!pick('visitDate'):true;
+    btnNext.classList.toggle('dim',cur<=2&&!picked);
+  }
+  function go(i){
+    if(leavingTimer){clearTimeout(leavingTimer);leavingTimer=null;}
+    var old=steps[cur];
+    old.classList.remove('active');old.classList.add('leaving');
+    cur=i;
+    var nw=steps[cur];
+    nw.classList.remove('leaving');
+    void nw.offsetWidth;
+    nw.classList.add('active');
+    leavingTimer=setTimeout(function(){steps.forEach(function(s){s.classList.remove('leaving');});leavingTimer=null;},320);
+    nw.scrollTop=0;
+    render();
+  }
+  function bindAuto(id,idx){
+    var box=document.getElementById(id);
+    box.addEventListener('click',function(e){
+      var o=e.target.closest('.opt,.chip,.dchip');if(!o)return;
+      box.querySelectorAll('.opt,.chip,.dchip').forEach(function(x){x.classList.remove('on');});
+      o.classList.add('on');render();
+      if(idx===0||idx===1||idx===3){
+        if(!leavingTimer)setTimeout(function(){if(cur===idx&&validate(idx))go(idx+1);},380);
+      }
+    });
+  }
+  bindAuto('purpose',0);bindAuto('type',1);bindAuto('party',3);
+  ['visitDate','visitTime'].forEach(function(id){
+    document.getElementById(id).addEventListener('click',function(e){
+      var o=e.target.closest('.dchip,.chip');if(!o)return;
+      var box=document.getElementById(id);
+      box.querySelectorAll('.dchip,.chip').forEach(function(x){x.classList.remove('on');});
+      o.classList.add('on');render();
+    });
+  });
+  phone.addEventListener('input',function(){
+    var v=phone.value.replace(/\D/g,'');
+    if(v.length<4)phone.value=v;
+    else if(v.length<8)phone.value=v.slice(0,3)+'-'+v.slice(3);
+    else phone.value=v.slice(0,3)+'-'+v.slice(3,7)+'-'+v.slice(7,11);
+  });
+  btnNext.addEventListener('click',function(){
+    if(!validate(cur)){
+      if(cur===2){
+        var dg=document.getElementById('visitDate');
+        dg.style.transition='none';dg.style.borderColor='var(--err)';
+        setTimeout(function(){dg.style.transition='';dg.style.borderColor='';},700);
+      }
+      return;
+    }
+    if(cur===steps.length-1){
+      var name=document.getElementById('name').value.trim(),
+          tel=phone.value.trim(),
+          memo=document.getElementById('memo').value.trim(),
+          time=pick('visitTime');
+      summary=
+        '현장: '+CFG.site+'\n'+
+        '이름: '+name+'\n'+
+        '연락처: '+tel+'\n'+
+        '날짜: '+pick('visitDate')+'\n'+
+        (time?'시간: '+time+'\n':'')+
+        '문의목적: '+pick('purpose')+'\n'+
+        '희망타입: '+pick('type')+'\n'+
+        '인원: '+(pick('party')||'미정')+'\n'+
+        (memo?'문의사항: '+memo:'');
+      document.getElementById('preview').textContent=summary;
+      done.classList.add('show');
+      autoSubmit();
+      return;
+    }
+    go(cur+1);
+  });
+  btnBack.addEventListener('click',function(){if(cur>0)go(cur-1);});
+
+  function autoSubmit(){
+    var st=document.getElementById('cloudStatus');
+    if(typeof supabase==='undefined')return;
+    try{
+      var sb2=supabase.createClient(SB_URL,SB_KEY);
+      var memo=document.getElementById('memo').value.trim();
+      var info='웹접수 | 목적: '+pick('purpose')+
+        ' | 타입: '+pick('type')+
+        ' | 인원: '+(pick('party')||'미정')+
+        (memo?' | 문의: '+memo:'');
+      sb2.from('reservations').insert([{
+        site:CFG.site,
+        owner:CFG.owner,
+        name:document.getElementById('name').value.trim(),
+        phone:phone.value.trim(),
+        date:pick('visitDate'),
+        time:pick('visitTime')||'',
+        status:'pending',
+        notes:{before:info,after:'',contract:''}
+      }]).then(function(r){
+        if(r.error){
+          st.textContent='⚠ 자동 접수 실패 — 아래 문자 전송을 이용해 주세요';
+          st.style.color='var(--err)';
+        }else{
+          st.textContent='✓ 담당자 장부에 자동 접수되었습니다';
+          st.style.color='var(--ok)';
+        }
+      });
+    }catch(e){}
+  }
+  document.getElementById('btnSms').addEventListener('click',function(){
+    location.href='sms:'+CFG.agent_phone+'?body='+encodeURIComponent(summary);
+  });
+  document.getElementById('btnCopy').addEventListener('click',function(){
+    var btn=this;
+    function ok(){
+      btn.textContent='✓ 복사됨 — 카카오톡에 붙여넣어 주세요';
+      btn.classList.add('copied');
+      setTimeout(function(){btn.textContent='📋 내용 복사하기';btn.classList.remove('copied');},2600);
+    }
+    if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(summary).then(ok);
+    else{var t=document.createElement('textarea');t.value=summary;document.body.appendChild(t);t.select();document.execCommand('copy');t.remove();ok();}
+  });
+  document.getElementById('btnAgain').addEventListener('click',function(){
+    done.classList.remove('show');
+    go(0);
+  });
+  steps[0].classList.add('active');
+  render();
+}
+</script>
+</body>
+</html>
